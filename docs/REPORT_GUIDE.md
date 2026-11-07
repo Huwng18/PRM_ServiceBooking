@@ -11,7 +11,7 @@ Customers need to browse available services, select date/time and track appointm
 
 ## 3. Business analysis / system design
 ### Actors
-- Customer: mock sign-in, browse, search, create, view and cancel own bookings.
+- Customer: mock sign-in, browse/filter, favorite services, create, view, reschedule and cancel own bookings.
 ### Functional requirements
 - FR01 Mock login/logout and session restore.
 - FR02 Browse and search predefined services.
@@ -20,6 +20,9 @@ Customers need to browse available services, select date/time and track appointm
 - FR05 Detect overlap for the same service/user under prototype rules.
 - FR06 Display booking history, allow cancelling future booking.
 - FR07 Keep bookings after app restart.
+- FR08 Persistent favorites and display name per email.
+- FR09 Reschedule future bookings without changing ID; rebook cancelled/past services.
+- FR10 Upcoming/past/cancelled groups and in-app upcoming reminders.
 ### Non-functional requirements
 - Simple mobile navigation and human-readable errors.
 - State synchronization through Provider.
@@ -31,13 +34,13 @@ UI/screens -> Provider/ChangeNotifier -> BookingRepository -> SQLite database.
 Service(id, name, category, description, durationMinutes, priceVnd).
 Booking(id, userEmail, serviceId, startAt, note, cancelled).
 ### Known design limitations
-No real user verification, shared booking inventory, server-side concurrency, encryption, database engine, admin UI or real payment.
+No real user verification, shared booking inventory, server-side concurrency, encryption, admin UI, push notifications or real payment. SQLite is the implemented local database engine.
 
 ## 4. Development and deployment
-Flutter/Dart, Material 3, Provider, SharedPreferences, Android build instructions in README. SQLite is used for booking persistence; document schema and screenshots from your own build. Screenshot release APK on device and include build logs.
+Flutter/Dart, Material 3, Provider, SharedPreferences, Android build instructions in README. SQLite is used for booking persistence; document schema and screenshots from your own build. Record screenshots and logs from the actual debug build. Release signing/build remain unverified until the team performs them.
 
 ## 5. Demonstration (15 minutes)
-1 min scenario, 2 min architecture, 7 min core flow, 2 min state/persistence, 2 min unit/widget testing, 1 min conclusion. Include screenshots and outputs recorded from local environment.
+Use [DEMO_15_MIN.md](DEMO_15_MIN.md) for the implemented 15-minute flow. See [qa/VERIFICATION.md](qa/VERIFICATION.md) for measured checks and screenshots. Add team-specific evidence.
 
 ## 6. Conclusion & discussion
 Pros: small offline prototype, clear booking flow, separable layers, state management. Cons: mock auth, no remote backend, no real availability, local-only records. Future: server/database, administrative approvals, role management, notifications.

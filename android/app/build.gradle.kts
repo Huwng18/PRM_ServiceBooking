@@ -4,6 +4,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Integration targets use a separate Android sandbox. Run via
+// scripts/test_android.ps1, which supplies the QA binary and disables the
+// Flutter driver's uninstall cleanup for the project's default package.
+val flutterTarget = providers.gradleProperty("target").orElse("lib/main.dart").get()
+val integrationBuild = flutterTarget.replace('\\', '/').contains("integration_test/")
+
 android {
     namespace = "com.example.service_booking_flutter"
     compileSdk = flutter.compileSdkVersion
@@ -16,7 +22,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.service_booking_flutter"
+        applicationId = "com.example.service_booking_flutter" + if (integrationBuild) ".qa" else ""
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
