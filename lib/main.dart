@@ -3,6 +3,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'data/booking_repository.dart';
 import 'providers/auth_provider.dart';
+import 'providers/favorites_provider.dart';
+import 'providers/app_navigation.dart';
 import 'providers/booking_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
@@ -13,8 +15,12 @@ Future<void> main() async {
   final auth = AuthProvider();
   final bookings = BookingProvider(BookingRepository());
   await Future.wait([auth.initialize(), bookings.initialize()]);
+  final favorites = FavoritesProvider(auth);
+  await favorites.initialize();
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider.value(value: auth),
+    ChangeNotifierProvider.value(value: favorites),
+    ChangeNotifierProvider(create: (_) => AppNavigation()),
     ChangeNotifierProvider.value(value: bookings),
   ], child: const BookingApp()));
 }

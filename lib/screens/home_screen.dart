@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 import 'services_screen.dart';
+import 'favorites_screen.dart';
+import '../providers/app_navigation.dart';
 import 'my_bookings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -13,17 +15,17 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _tab = 0;
-
   @override
   Widget build(BuildContext context) {
     final email = context.watch<AuthProvider>().email ?? '';
+    final tab = context.watch<AppNavigation>().index;
     return Scaffold(
       body: IndexedStack(
-        index: _tab,
+        index: tab,
         children: [
           const ServicesScreen(),
           MyBookingsScreen(email: email),
+          const FavoritesScreen(),
           _AccountScreen(email: email),
         ],
       ),
@@ -36,8 +38,8 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.transparent,
           indicatorColor: AppColors.mint,
-          selectedIndex: _tab,
-          onDestinationSelected: (value) => setState(() => _tab = value),
+          selectedIndex: tab,
+          onDestinationSelected: context.read<AppNavigation>().select,
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.grid_view_outlined),
@@ -51,6 +53,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   Icon(Icons.calendar_month_rounded, color: AppColors.teal),
               label: 'Lịch hẹn',
             ),
+            NavigationDestination(
+                icon: Icon(Icons.favorite_border_rounded),
+                selectedIcon:
+                    Icon(Icons.favorite_rounded, color: AppColors.teal),
+                label: 'Y?u th?ch'),
             NavigationDestination(
               icon: Icon(Icons.person_outline_rounded),
               selectedIcon: Icon(Icons.person_rounded, color: AppColors.teal),
