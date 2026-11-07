@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppColors {
-  static const canvas = Color(0xFFF6F8F6);
-  static const ink = Color(0xFF17383B);
-  static const teal = Color(0xFF087F77);
+  static const canvas = Color(0xFFF6F8F5);
+  static const ink = Color(0xFF173B3E);
+  static const teal = Color(0xFF087F78);
   static const muted = Color(0xFF68807E);
   static const line = Color(0xFFE4EBE8);
-  static const mint = Color(0xFFE2F4EE);
-  static const peach = Color(0xFFFFE9D9);
+  static const mint = Color(0xFFE1F3EE);
+  static const peach = Color(0xFFFBEADF);
   static const coral = Color(0xFFCB674A);
 }
 
@@ -28,13 +28,13 @@ ThemeData buildAppTheme() {
     scaffoldBackgroundColor: AppColors.canvas,
     textTheme: const TextTheme(
       displaySmall: TextStyle(
-          fontSize: 34,
+          fontSize: 28,
           fontWeight: FontWeight.w800,
           letterSpacing: -1.3,
           color: AppColors.ink,
           height: 1.15),
       headlineMedium: TextStyle(
-          fontSize: 29,
+          fontSize: 26,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.8,
           color: AppColors.ink),
@@ -63,7 +63,7 @@ ThemeData buildAppTheme() {
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(18),
         side: const BorderSide(color: AppColors.line),
       ),
     ),
@@ -91,9 +91,31 @@ ThemeData buildAppTheme() {
         backgroundColor: AppColors.teal,
         foregroundColor: Colors.white,
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        minimumSize: const Size.fromHeight(54),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17)),
+        minimumSize: const Size(48, 52),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(48, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        side: const BorderSide(color: AppColors.line),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: Colors.white,
+      selectedColor: AppColors.mint,
+      side: const BorderSide(color: AppColors.line),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      labelStyle: const TextStyle(fontSize: 14, color: AppColors.ink),
     ),
     snackBarTheme: SnackBarThemeData(
       backgroundColor: AppColors.ink,

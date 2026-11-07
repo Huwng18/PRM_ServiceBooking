@@ -42,63 +42,22 @@ class ServiceIcon extends StatelessWidget {
   }
 }
 
+/// Bundled illustrative photos; never represents a verified provider.
 class ServiceArtwork extends StatelessWidget {
-  const ServiceArtwork({super.key, required this.service, this.height = 210});
+  const ServiceArtwork({super.key, required this.service, this.height = 180});
   final Service service;
   final double height;
-
   @override
-  Widget build(BuildContext context) {
-    final style = ServiceStyle.forService(service);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
-      child: Container(
-        height: height,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [style.tint, Color.lerp(style.tint, Colors.white, 0.35)!],
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-                right: -36,
-                top: -70,
-                child: _circle(190, style.accent.withValues(alpha: 0.08))),
-            Positioned(
-                left: -28,
-                bottom: -100,
-                child: _circle(215, style.accent.withValues(alpha: 0.07))),
-            Center(
-              child: Container(
-                width: 108,
-                height: 108,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.82),
-                  borderRadius: BorderRadius.circular(32),
-                  boxShadow: [
-                    BoxShadow(
-                      color: style.accent.withValues(alpha: 0.12),
-                      blurRadius: 25,
-                      offset: const Offset(0, 10),
-                    )
-                  ],
-                ),
-                child: Icon(style.icon, size: 55, color: style.accent),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _circle(double size, Color color) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+  Widget build(BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.asset('assets/images/${service.id}.jpg',
+            height: height,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+                height: height,
+                color: ServiceStyle.forService(service).tint,
+                alignment: Alignment.center,
+                child: ServiceIcon(service: service, size: 64))),
       );
 }
