@@ -127,142 +127,151 @@ class _ServicesScreenState extends State<ServicesScreen> {
         child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
             children: [
-          Row(children: [
-            const Brand(),
-            const Spacer(),
-            IconButton.outlined(
-                tooltip: 'Nhắc lịch của bạn',
-                onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const NotificationsScreen())),
-                icon: const Icon(Icons.notifications_none_rounded)),
-            const SizedBox(width: 8),
-            IconButton.filledTonal(
-                tooltip: 'Tài khoản',
-                onPressed: () => context.read<AppNavigation>().select(3),
-                icon: Text(email.isEmpty ? 'H' : email[0].toUpperCase(),
-                    style: const TextStyle(fontWeight: FontWeight.bold))),
-          ]),
-          const SizedBox(height: 20),
-          const Text('Chào bạn, một ngày thật tốt lành'),
-          const SizedBox(height: 4),
-          Text('Hôm nay, bạn cần gì?',
-              style: Theme.of(context).textTheme.headlineMedium),
-          const SizedBox(height: 20),
-          ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Stack(children: [
-                Positioned.fill(
-                    child: Image.asset('assets/images/forest.jpg',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            const ColoredBox(color: AppColors.mint))),
-                Positioned.fill(
-                    child: DecoratedBox(
-                        decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [
-                  const Color(0xFFEBEFDF),
-                  const Color(0xFFEBEFDF).withValues(alpha: .90),
-                  const Color(0xFFEBEFDF).withValues(alpha: .25)
-                ], stops: const [
-                  0,
-                  .55,
-                  1
-                ])))),
-                Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('CHĂM CHÚT CUỘC SỐNG',
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  color: AppColors.teal,
-                                  letterSpacing: 1.5,
-                                  fontWeight: FontWeight.w800)),
-                          const SizedBox(height: 10),
-                          Text('Bớt bận rộn.\nThêm thảnh thơi.',
-                              style: Theme.of(context).textTheme.headlineSmall),
-                          const SizedBox(height: 8),
-                          const Text('Dịch vụ bạn cần, vào lúc bạn muốn.',
-                              style: TextStyle(
-                                  color: AppColors.ink, fontSize: 13)),
-                          const SizedBox(height: 12),
-                          FilledButton(
-                              onPressed: () => Scrollable.ensureVisible(
-                                  _results.currentContext!,
-                                  duration: const Duration(milliseconds: 350)),
-                              child: const Text('Khám phá ngay')),
-                        ])),
-              ])),
-          const SizedBox(height: 20),
-          Row(children: [
-            Expanded(
-                child: TextField(
-                    controller: _search,
-                    onChanged: (_) => setState(() {}),
-                    decoration: InputDecoration(
-                        hintText: 'Tìm dịch vụ bạn đang cần…',
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        suffixIcon: _search.text.isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: 'Xóa tìm kiếm',
-                                onPressed: () => setState(_search.clear),
-                                icon: const Icon(Icons.close_rounded))))),
-            const SizedBox(width: 8),
-            IconButton.outlined(
-                tooltip: 'Bộ lọc',
-                onPressed: _filters,
-                icon: Badge(
-                    isLabelVisible: _price != 0 || _sort != 0,
-                    child: const Icon(Icons.tune_rounded))),
-          ]),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(children: [
-                for (final category in [
-                  'Tất cả',
-                  ...demoServices.map((s) => s.category).toSet()
-                ])
+          // Keep the banner's scroll destination mounted on compact screens.
+          Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              const Expanded(
+                  child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FittedBox(fit: BoxFit.scaleDown, child: Brand()))),
+              IconButton.outlined(
+                  tooltip: 'Nhắc lịch của bạn',
+                  onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const NotificationsScreen())),
+                  icon: const Icon(Icons.notifications_none_rounded)),
+              const SizedBox(width: 8),
+              IconButton.filledTonal(
+                  tooltip: 'Tài khoản',
+                  onPressed: () => context.read<AppNavigation>().select(3),
+                  icon: Text(email.isEmpty ? 'H' : email[0].toUpperCase(),
+                      style: const TextStyle(fontWeight: FontWeight.bold))),
+            ]),
+            const SizedBox(height: 20),
+            const Text('Chào bạn, một ngày thật tốt lành'),
+            const SizedBox(height: 4),
+            Text('Hôm nay, bạn cần gì?',
+                style: Theme.of(context).textTheme.headlineMedium),
+            const SizedBox(height: 20),
+            ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Stack(children: [
+                  Positioned.fill(
+                      child: Image.asset('assets/images/forest.jpg',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const ColoredBox(color: AppColors.mint))),
+                  Positioned.fill(
+                      child: DecoratedBox(
+                          decoration: BoxDecoration(
+                              gradient: LinearGradient(colors: [
+                    const Color(0xFFEBEFDF),
+                    const Color(0xFFEBEFDF).withValues(alpha: .90),
+                    const Color(0xFFEBEFDF).withValues(alpha: .25)
+                  ], stops: const [
+                    0,
+                    .55,
+                    1
+                  ])))),
                   Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                          showCheckmark: false,
-                          label: Text(category),
-                          selected: _category == category,
-                          onSelected: (_) =>
-                              setState(() => _category = category))),
-              ])),
-          if (filtered)
-            Wrap(
-                spacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  if (_category != 'Tất cả')
-                    InputChip(
-                        label: Text(_category),
-                        onDeleted: () => setState(() => _category = 'Tất cả')),
-                  if (_price != 0)
-                    InputChip(
-                        label: Text(_prices[_price]),
-                        onDeleted: () => setState(() => _price = 0)),
-                  if (_sort != 0)
-                    InputChip(
-                        label:
-                            Text(_sort == 1 ? 'Giá tăng dần' : 'Giá giảm dần'),
-                        onDeleted: () => setState(() => _sort = 0)),
-                  TextButton(
-                      onPressed: _reset, child: const Text('Xóa bộ lọc')),
-                ]),
-          SectionHeader(
-              key: _results,
-              titleText,
-              subtitle: 'Một chút chăm sóc, một ngày tốt hơn.',
-              action: Text('${items.length} dịch vụ',
-                  style: const TextStyle(fontSize: 12, color: AppColors.teal))),
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('CHĂM CHÚT CUỘC SỐNG',
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.teal,
+                                    letterSpacing: 1.5,
+                                    fontWeight: FontWeight.w800)),
+                            const SizedBox(height: 10),
+                            Text('Bớt bận rộn.\nThêm thảnh thơi.',
+                                style:
+                                    Theme.of(context).textTheme.headlineSmall),
+                            const SizedBox(height: 8),
+                            const Text('Dịch vụ bạn cần, vào lúc bạn muốn.',
+                                style: TextStyle(
+                                    color: AppColors.ink, fontSize: 13)),
+                            const SizedBox(height: 12),
+                            FilledButton(
+                                onPressed: () => Scrollable.ensureVisible(
+                                    _results.currentContext!,
+                                    duration:
+                                        const Duration(milliseconds: 350)),
+                                child: const Text('Khám phá ngay')),
+                          ])),
+                ])),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(
+                  child: TextField(
+                      controller: _search,
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                          hintText: 'Tìm dịch vụ bạn đang cần…',
+                          prefixIcon: const Icon(Icons.search_rounded),
+                          suffixIcon: _search.text.isEmpty
+                              ? null
+                              : IconButton(
+                                  tooltip: 'Xóa tìm kiếm',
+                                  onPressed: () => setState(_search.clear),
+                                  icon: const Icon(Icons.close_rounded))))),
+              const SizedBox(width: 8),
+              IconButton.outlined(
+                  tooltip: 'Bộ lọc',
+                  onPressed: _filters,
+                  icon: Badge(
+                      isLabelVisible: _price != 0 || _sort != 0,
+                      child: const Icon(Icons.tune_rounded))),
+            ]),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: [
+                  for (final category in [
+                    'Tất cả',
+                    ...demoServices.map((s) => s.category).toSet()
+                  ])
+                    Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                            showCheckmark: false,
+                            label: Text(category),
+                            selected: _category == category,
+                            onSelected: (_) =>
+                                setState(() => _category = category))),
+                ])),
+            if (filtered)
+              Wrap(
+                  spacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (_category != 'Tất cả')
+                      InputChip(
+                          label: Text(_category),
+                          onDeleted: () =>
+                              setState(() => _category = 'Tất cả')),
+                    if (_price != 0)
+                      InputChip(
+                          label: Text(_prices[_price]),
+                          onDeleted: () => setState(() => _price = 0)),
+                    if (_sort != 0)
+                      InputChip(
+                          label: Text(
+                              _sort == 1 ? 'Giá tăng dần' : 'Giá giảm dần'),
+                          onDeleted: () => setState(() => _sort = 0)),
+                    TextButton(
+                        onPressed: _reset, child: const Text('Xóa bộ lọc')),
+                  ]),
+            SectionHeader(
+                key: _results,
+                titleText,
+                subtitle: 'Một chút chăm sóc, một ngày tốt hơn.',
+                action: Text('${items.length} dịch vụ',
+                    style:
+                        const TextStyle(fontSize: 12, color: AppColors.teal))),
+          ]),
           if (items.isEmpty)
             AppEmptyState(
                 icon: Icons.search_off_rounded,

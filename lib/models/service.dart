@@ -5,6 +5,11 @@ class Service {
   final String description;
   final int durationMinutes;
   final int priceVnd;
-  const Service({required this.id, required this.name, required this.category,
-    required this.description, required this.durationMinutes, required this.priceVnd});
+  const Service(
+      {required this.id,
+      required this.name,
+      required this.category,
+      required this.description,
+      required this.durationMinutes,
+      required this.priceVnd});
 }

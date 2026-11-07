@@ -21,6 +21,7 @@ class Brand extends StatelessWidget {
                 const Icon(Icons.auto_awesome, color: Colors.white, size: 22)),
         const SizedBox(width: 8),
         Text('hẹnio.',
+            textScaler: TextScaler.noScaling,
             style: Theme.of(context)
                 .textTheme
                 .headlineSmall
@@ -62,13 +63,13 @@ class SurfaceCard extends StatelessWidget {
   final Color color;
   final EdgeInsetsGeometry padding;
   @override
-  Widget build(BuildContext context) => Container(
-        padding: padding,
-        decoration: BoxDecoration(
-            color: color,
+  Widget build(BuildContext context) => Material(
+        color: color,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.line)),
-        child: child,
+            side: const BorderSide(color: AppColors.line)),
+        child: Padding(padding: padding, child: child),
       );
 }
 

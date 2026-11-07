@@ -17,64 +17,11 @@ class AccountScreen extends StatefulWidget {
 
 class _AccountScreenState extends State<AccountScreen> {
   bool _busy = false;
-  Future<void> _editName() async {
-    final auth = context.read<AuthProvider>();
-    final input = TextEditingController(text: auth.displayName);
-    var saving = false;
-    String? error;
-    await showDialog<void>(
+  Future<void> _editName() => showDialog<void>(
         context: context,
         barrierDismissible: false,
-        builder: (dialogContext) => StatefulBuilder(
-            builder: (dialogContext, update) => PopScope(
-                canPop: !saving,
-                child: AlertDialog(
-                  title: const Text('Tên hiển thị'),
-                  content: Column(mainAxisSize: MainAxisSize.min, children: [
-                    TextField(
-                        controller: input,
-                        autofocus: true,
-                        enabled: !saving,
-                        maxLength: 40,
-                        decoration: InputDecoration(
-                            labelText: 'Tên của bạn', errorText: error))
-                  ]),
-                  actions: [
-                    TextButton(
-                        onPressed:
-                            saving ? null : () => Navigator.pop(dialogContext),
-                        child: const Text('Để sau')),
-                    TextButton(
-                        onPressed: saving
-                            ? null
-                            : () async {
-                                update(() {
-                                  saving = true;
-                                  error = null;
-                                });
-                                try {
-                                  await auth.updateDisplayName(input.text);
-                                  if (dialogContext.mounted) {
-                                    Navigator.pop(dialogContext);
-                                  }
-                                } catch (e) {
-                                  if (dialogContext.mounted) {
-                                    update(() {
-                                      saving = false;
-                                      error = e is ArgumentError
-                                          ? e.message.toString()
-                                          : 'Không thể lưu tên. Vui lòng thử lại.';
-                                    });
-                                  }
-                                }
-                              },
-                        child: Text(saving ? 'Đang lưu…' : 'Lưu tên'))
-                  ],
-                ))));
-    // The dialog route finishes its reverse animation before the controller is disposed.
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-    input.dispose();
-  }
+        builder: (_) => _DisplayNameDialog(auth: context.read<AuthProvider>()),
+      );
 
   Future<void> _logout() async {
     if (_busy) return;
@@ -209,4 +156,72 @@ class AboutScreen extends StatelessWidget {
             child: Text(
                 '• Đăng nhập mô phỏng, không xác thực tài khoản thật.\n\n• Lịch hẹn lưu trong SQLite; phiên đăng nhập, tên và yêu thích lưu bằng SharedPreferences trên thiết bị.\n\n• Danh mục và giá là dữ liệu demo; ảnh chỉ minh họa.\n\n• Chưa kết nối lịch nhà cung cấp, chưa có thanh toán thật.\n\n• Chỉ nhắc lịch trong app, chưa có thông báo đẩy.\n\n• Dữ liệu không đồng bộ sang thiết bị khác.')),
       ]));
+}
+
+class _DisplayNameDialog extends StatefulWidget {
+  const _DisplayNameDialog({required this.auth});
+  final AuthProvider auth;
+  @override
+  State<_DisplayNameDialog> createState() => _DisplayNameDialogState();
+}
+
+class _DisplayNameDialogState extends State<_DisplayNameDialog> {
+  late final TextEditingController _input;
+  bool _saving = false;
+  String? _error;
+  @override
+  void initState() {
+    super.initState();
+    _input = TextEditingController(text: widget.auth.displayName);
+  }
+
+  @override
+  void dispose() {
+    _input.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.auth.updateDisplayName(_input.text);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = e is ArgumentError
+              ? e.message.toString()
+              : 'Không thể lưu tên. Vui lòng thử lại.';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => PopScope(
+      canPop: !_saving,
+      child: AlertDialog(
+        scrollable: true,
+        title: const Text('Tên hiển thị'),
+        content: TextField(
+            controller: _input,
+            autofocus: true,
+            enabled: !_saving,
+            maxLength: 40,
+            decoration:
+                InputDecoration(labelText: 'Tên của bạn', errorText: _error)),
+        actions: [
+          TextButton(
+              onPressed: _saving ? null : () => Navigator.pop(context),
+              child: const Text('Để sau')),
+          TextButton(
+              onPressed: _saving ? null : _save,
+              child: Text(_saving ? 'Đang lưu…' : 'Lưu tên'))
+        ],
+      ));
 }

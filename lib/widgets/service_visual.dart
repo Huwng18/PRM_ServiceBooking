@@ -54,6 +54,14 @@ class ServiceArtwork extends StatelessWidget {
             height: height,
             width: double.infinity,
             fit: BoxFit.cover,
+            frameBuilder: (_, child, frame, synchronous) =>
+                frame != null || synchronous
+                    ? child
+                    : Container(
+                        height: height,
+                        color: ServiceStyle.forService(service).tint,
+                        alignment: Alignment.center,
+                        child: ServiceIcon(service: service, size: 64)),
             errorBuilder: (_, __, ___) => Container(
                 height: height,
                 color: ServiceStyle.forService(service).tint,
