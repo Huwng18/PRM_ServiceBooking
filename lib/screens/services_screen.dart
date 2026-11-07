@@ -8,6 +8,8 @@ import '../utils/service_search.dart';
 import '../widgets/app_components.dart';
 import '../widgets/service_card.dart';
 
+import 'notifications_screen.dart';
+
 export '../widgets/app_components.dart' show money;
 
 class ServicesScreen extends StatefulWidget {
@@ -130,7 +132,10 @@ class _ServicesScreenState extends State<ServicesScreen> {
             const Spacer(),
             IconButton.outlined(
                 tooltip: 'Nhắc lịch của bạn',
-                onPressed: () => context.read<AppNavigation>().select(1),
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const NotificationsScreen())),
                 icon: const Icon(Icons.notifications_none_rounded)),
             const SizedBox(width: 8),
             IconButton.filledTonal(

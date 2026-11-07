@@ -11,6 +11,7 @@ void main() {
       child: const MaterialApp(home: LoginScreen()),
     ));
     await tester.enterText(find.byKey(const Key('emailField')), 'wrong-email');
+    await tester.ensureVisible(find.byKey(const Key('loginButton')));
     await tester.tap(find.byKey(const Key('loginButton')));
     await tester.pump();
     expect(find.text('Nhập email hợp lệ'), findsOneWidget);
