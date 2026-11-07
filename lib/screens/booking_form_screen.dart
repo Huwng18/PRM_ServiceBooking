@@ -1,27 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../models/service.dart';
+import '../models/booking.dart';
 import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
+import '../providers/app_navigation.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_components.dart';
 import '../widgets/service_visual.dart';
-import 'services_screen.dart';
 
 class BookingFormScreen extends StatefulWidget {
-  const BookingFormScreen({super.key, required this.service});
-
+  const BookingFormScreen(
+      {super.key, required this.service, this.existingBooking});
   final Service service;
-
+  final Booking? existingBooking;
   @override
   State<BookingFormScreen> createState() => _BookingFormScreenState();
 }
 
 class _BookingFormScreenState extends State<BookingFormScreen> {
-  DateTime? _date;
-  TimeOfDay? _time;
+  late DateTime _date;
+  DateTime? _selected;
   final _note = TextEditingController();
-  bool busy = false;
+  bool _busy = false;
+  String? _error;
+  bool get _editing => widget.existingBooking != null;
+  @override
+  void initState() {
+    super.initState();
+    final old = widget.existingBooking;
+    _date = DateUtils.dateOnly(old?.startAt ?? DateTime.now());
+    _selected = old?.startAt;
+    _note.text = old?.note ?? '';
+  }
 
   @override
   void dispose() {
@@ -29,263 +40,277 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     super.dispose();
   }
 
+  void _changeDate(DateTime date) => setState(() {
+        _date = date;
+        _selected = null;
+        _error = null;
+      });
   Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final result = await showDatePicker(
-      context: context,
-      initialDate: _date ?? now,
-      firstDate: DateTime(now.year, now.month, now.day),
-      lastDate: now.add(const Duration(days: 90)),
-    );
-    if (result != null && mounted) setState(() => _date = result);
+    final today = DateUtils.dateOnly(DateTime.now());
+    final initial = _date.isBefore(today) ? today : _date;
+    final last = today.add(const Duration(days: 365));
+    final date = await showDatePicker(
+        context: context,
+        initialDate: initial,
+        firstDate: today,
+        lastDate: initial.isAfter(last) ? initial : last);
+    if (date != null && mounted) _changeDate(date);
   }
 
-  Future<void> _pickTime() async {
-    final result = await showTimePicker(
-      context: context,
-      initialTime: _time ?? const TimeOfDay(hour: 9, minute: 0),
-    );
-    if (result != null && mounted) setState(() => _time = result);
-  }
-
-  Future<void> _submit() async {
-    if (_date == null || _time == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Hãy chọn ngày và giờ.')),
-      );
-      return;
-    }
-    setState(() => busy = true);
-    final startAt = DateTime(
-      _date!.year,
-      _date!.month,
-      _date!.day,
-      _time!.hour,
-      _time!.minute,
-    );
-    final email = context.read<AuthProvider>().email!;
-    final error = await context.read<BookingProvider>().book(
+  String? _issue(DateTime time, BookingProvider provider, String email) =>
+      BookingRules.validate(
+          startAt: time,
+          durationMinutes: widget.service.durationMinutes,
+          existing: provider.all,
           userEmail: email,
-          service: widget.service,
-          startAt: startAt,
-          note: _note.text.trim(),
-        );
+          serviceId: widget.service.id,
+          excludeBookingId: widget.existingBooking?.id);
+  Future<void> _submit() async {
+    if (_busy || _selected == null) return;
+    FocusScope.of(context).unfocus();
+    final auth = context.read<AuthProvider>();
+    if (auth.email == null) return;
+    final provider = context.read<BookingProvider>();
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final issue = _editing
+        ? await provider.reschedule(
+            id: widget.existingBooking!.id,
+            userEmail: auth.email!,
+            startAt: _selected!,
+            note: _note.text)
+        : await provider.book(
+            userEmail: auth.email!,
+            service: widget.service,
+            startAt: _selected!,
+            note: _note.text);
     if (!mounted) return;
-    setState(() => busy = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error ?? 'Đặt lịch thành công!')),
-    );
-    if (error == null) Navigator.popUntil(context, (route) => route.isFirst);
+    setState(() {
+      _busy = false;
+      _error = issue;
+    });
+    if (issue == null) {
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (_) => BookingSuccessScreen(
+                  service: widget.service,
+                  startAt: _selected!,
+                  rescheduled: _editing)));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Đặt lịch')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-        children: [
-          const Text('MỘT CHÚT NỮA THÔI',
-              style: TextStyle(
-                color: AppColors.teal,
-                fontWeight: FontWeight.w800,
-                fontSize: 12,
-                letterSpacing: 1.2,
-              )),
-          const SizedBox(height: 7),
-          Text('Chọn lịch phù hợp\nvới bạn', style: textTheme.headlineMedium),
-          const SizedBox(height: 22),
-          Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: AppColors.line),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: Row(
+    final provider = context.watch<BookingProvider>();
+    final email = context.watch<AuthProvider>().email ?? '';
+    final today = DateUtils.dateOnly(DateTime.now());
+    final selectedIssue =
+        _selected == null ? null : _issue(_selected!, provider, email);
+    return PopScope(
+        canPop: !_busy,
+        child: Scaffold(
+          appBar: AppBar(
+              title: Text(_editing ? 'Đổi lịch hẹn' : 'Đặt lịch dịch vụ')),
+          body: ListView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               children: [
-                ServiceIcon(service: widget.service, size: 60),
-                const SizedBox(width: 14),
-                Expanded(
-                    child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.service.name, style: textTheme.titleMedium),
-                    const SizedBox(height: 4),
-                    Text(
-                        '${widget.service.durationMinutes} phút  •  ${money(widget.service.priceVnd)}',
-                        style: const TextStyle(
-                            color: AppColors.muted, fontSize: 13)),
-                  ],
-                )),
-              ],
-            ),
-          ),
-          const SizedBox(height: 26),
-          const _SectionTitle(number: '01', title: 'Ngày & giờ hẹn'),
-          const SizedBox(height: 12),
-          _PickerTile(
-            icon: Icons.calendar_today_rounded,
-            label: 'Ngày hẹn',
-            value: _date == null
-                ? 'Chọn ngày phù hợp'
-                : '${_date!.day.toString().padLeft(2, '0')}/${_date!.month.toString().padLeft(2, '0')}/${_date!.year}',
-            selected: _date != null,
-            onTap: _pickDate,
-          ),
-          const SizedBox(height: 10),
-          _PickerTile(
-            icon: Icons.schedule_rounded,
-            label: 'Giờ hẹn',
-            value: _time == null ? 'Chọn giờ phù hợp' : _time!.format(context),
-            selected: _time != null,
-            onTap: _pickTime,
-          ),
-          const SizedBox(height: 11),
-          const Row(
-            children: [
-              Icon(Icons.info_outline_rounded,
-                  size: 16, color: AppColors.muted),
-              SizedBox(width: 7),
-              Text('Giờ phục vụ: 08:00–18:00',
-                  style: TextStyle(color: AppColors.muted, fontSize: 13)),
-            ],
-          ),
-          const SizedBox(height: 26),
-          const _SectionTitle(number: '02', title: 'Ghi chú của bạn'),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _note,
-            maxLines: 3,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              hintText: 'Ví dụ: Tôi muốn đặt lịch vào buổi sáng...',
-              helperText: 'Không bắt buộc',
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 13, 20, 12),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            border: Border(top: BorderSide(color: AppColors.line)),
-          ),
-          child: FilledButton.icon(
-            onPressed: busy ? null : _submit,
-            icon: busy
-                ? const SizedBox(
-                    width: 17,
-                    height: 17,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.check_circle_outline_rounded, size: 20),
-            label: Text(busy ? 'Đang lưu...' : 'Xác nhận đặt lịch'),
-          ),
-        ),
-      ),
-    );
+                SurfaceCard(
+                    child: Row(children: [
+                  ServiceIcon(service: widget.service, size: 52),
+                  const SizedBox(width: 12),
+                  Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        Text(widget.service.name,
+                            style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 4),
+                        Text(
+                            '${widget.service.durationMinutes} phút · ${money(widget.service.priceVnd)}')
+                      ]))
+                ])),
+                SectionHeader('01 · Ngày hẹn',
+                    action: TextButton.icon(
+                        onPressed: _busy ? null : _pickDate,
+                        icon:
+                            const Icon(Icons.calendar_today_outlined, size: 18),
+                        label: const Text('Mở lịch'))),
+                Text('Đã chọn: ${dateLabel(_date)}'),
+                const SizedBox(height: 8),
+                Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: List.generate(7, (index) {
+                      final day = today.add(Duration(days: index));
+                      return ChoiceChip(
+                          label: Text(index == 0
+                              ? 'Hôm nay'
+                              : index == 1
+                                  ? 'Ngày mai'
+                                  : '${day.day}/${day.month}'),
+                          selected: DateUtils.isSameDay(_date, day),
+                          onSelected: _busy ? null : (_) => _changeDate(day));
+                    })),
+                const SectionHeader('02 · Giờ hẹn',
+                    subtitle: 'Giờ phục vụ 08:00–18:00 · bước 30 phút'),
+                Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: List.generate(20, (index) {
+                      final slot = DateTime(_date.year, _date.month, _date.day,
+                          8 + index ~/ 2, (index % 2) * 30);
+                      final issue = _issue(slot, provider, email);
+                      return Tooltip(
+                          message: issue ?? 'Chọn ${timeLabel(slot)}',
+                          triggerMode: TooltipTriggerMode.tap,
+                          child: ChoiceChip(
+                              label: Text(timeLabel(slot)),
+                              selected: _selected == slot,
+                              onSelected: _busy || issue != null
+                                  ? null
+                                  : (_) => setState(() {
+                                        _selected = slot;
+                                        _error = null;
+                                      })));
+                    })),
+                const SizedBox(height: 12),
+                const Text(
+                    'Giờ mờ: đã qua, trùng lịch cùng dịch vụ của bạn hoặc không đủ thời lượng trước 18:00. Chạm để xem lý do. Đây là lịch demo cục bộ, không phải chỗ trống của nhà cung cấp.',
+                    style: TextStyle(fontSize: 12)),
+                if (_selected != null)
+                  Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                          selectedIssue ??
+                              'Dự kiến kết thúc lúc ${timeLabel(_selected!.add(Duration(minutes: widget.service.durationMinutes)))}',
+                          style: TextStyle(
+                              color: selectedIssue == null
+                                  ? AppColors.teal
+                                  : AppColors.coral))),
+                const SectionHeader('03 · Ghi chú', subtitle: 'Không bắt buộc'),
+                TextField(
+                    controller: _note,
+                    enabled: !_busy,
+                    maxLines: 3,
+                    maxLength: 500,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                        hintText: 'Bạn muốn nhắn thêm điều gì?')),
+                const SectionHeader('04 · Xác nhận'),
+                const SurfaceCard(
+                    color: AppColors.mint,
+                    child: Text(
+                        'Lịch được lưu trên thiết bị. Bạn có thể đổi hoặc hủy trước giờ hẹn. Chưa có thanh toán thật.')),
+                if (_error != null)
+                  Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(_error!,
+                          style: const TextStyle(color: AppColors.coral))),
+                if (provider.error != null)
+                  AppEmptyState(
+                      icon: Icons.error_outline,
+                      title: 'Chưa thể tải lịch hẹn',
+                      message: provider.error!,
+                      action: OutlinedButton(
+                          onPressed: provider.initialize,
+                          child: const Text('Thử lại'))),
+              ]),
+          bottomNavigationBar: SafeArea(
+              top: false,
+              child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+                  child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            spacing: 16,
+                            runSpacing: 4,
+                            children: [
+                              Text(_selected == null
+                                  ? 'Chọn ngày và giờ phù hợp'
+                                  : '${dateLabel(_selected!)} · ${timeLabel(_selected!)}'),
+                              Text(money(widget.service.priceVnd),
+                                  style: const TextStyle(
+                                      color: AppColors.teal,
+                                      fontWeight: FontWeight.w800))
+                            ]),
+                        const SizedBox(height: 10),
+                        PrimaryButton(
+                            label: _editing
+                                ? 'Xác nhận đổi lịch'
+                                : 'Xác nhận đặt lịch',
+                            busy: _busy,
+                            icon: Icons.check_rounded,
+                            onPressed: _selected == null ||
+                                    selectedIssue != null ||
+                                    provider.loading ||
+                                    provider.saving ||
+                                    provider.error != null
+                                ? null
+                                : _submit),
+                      ]))),
+        ));
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.number, required this.title});
-
-  final String number;
-  final String title;
-
+class BookingSuccessScreen extends StatelessWidget {
+  const BookingSuccessScreen(
+      {super.key,
+      required this.service,
+      required this.startAt,
+      this.rescheduled = false});
+  final Service service;
+  final DateTime startAt;
+  final bool rescheduled;
   @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          Container(
-            width: 33,
-            height: 33,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppColors.mint,
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: Text(number,
-                style: const TextStyle(
-                  color: AppColors.teal,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12,
-                )),
-          ),
-          const SizedBox(width: 10),
-          Text(title, style: Theme.of(context).textTheme.titleLarge),
-        ],
-      );
-}
-
-class _PickerTile extends StatelessWidget {
-  const _PickerTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(19),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(19),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.line),
-              borderRadius: BorderRadius.circular(19),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 43,
-                  height: 43,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.mint,
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: Icon(icon, color: AppColors.teal, size: 20),
-                ),
-                const SizedBox(width: 13),
-                Expanded(
-                    child: Column(
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Lịch hẹn của bạn')),
+        body: SafeArea(
+            child: ListView(padding: const EdgeInsets.all(24), children: [
+          const SizedBox(height: 24),
+          const Center(
+              child: CircleAvatar(
+                  radius: 36,
+                  backgroundColor: AppColors.mint,
+                  child: Icon(Icons.check_rounded,
+                      color: AppColors.teal, size: 36))),
+          const SizedBox(height: 20),
+          Text(rescheduled ? 'Đã đổi lịch hẹn!' : 'Đặt lịch thành công!',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height: 8),
+          const Text('Một khoảng thời gian dành riêng cho bạn.',
+              textAlign: TextAlign.center),
+          const SizedBox(height: 24),
+          SurfaceCard(
+              child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label,
-                        style: const TextStyle(
-                          color: AppColors.muted,
-                          fontSize: 12,
-                        )),
-                    const SizedBox(height: 2),
-                    Text(value,
-                        style: TextStyle(
-                          color: selected ? AppColors.ink : AppColors.muted,
-                          fontSize: 15,
-                          fontWeight:
-                              selected ? FontWeight.w700 : FontWeight.w500,
-                        )),
-                  ],
-                )),
-                const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
-              ],
-            ),
-          ),
-        ),
+                Text(service.name,
+                    style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
+                Text('${dateLabel(startAt)} · ${timeLabel(startAt)}'),
+                const SizedBox(height: 8),
+                Text(
+                    '${service.durationMinutes} phút · ${money(service.priceVnd)}'),
+              ])),
+          const SizedBox(height: 24),
+          PrimaryButton(
+              label: 'Xem lịch hẹn',
+              icon: Icons.calendar_month_rounded,
+              onPressed: () {
+                context.read<AppNavigation>().select(1);
+                Navigator.popUntil(context, (route) => route.isFirst);
+              }),
+          const SizedBox(height: 12),
+          const Text('Đã lưu cục bộ · Chưa có xác nhận từ nhà cung cấp',
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+        ])),
       );
 }
